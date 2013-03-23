@@ -1,6 +1,6 @@
 //
 //  SEYouTubeUploadController.h
-//  Stan
+//  SEBeamMeUpScotty
 //
 //  Created by bryn austin bellomy on 3.15.13.
 //  Copyright (c) 2013 bryn austin bellomy. All rights reserved.
@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "SEUpload.h"
+#import "SEBeamMeUpScotty.h"
 #import "SEUploadController.h"
 #import "SEYouTubeSessionController.h"
 

@@ -1,17 +1,18 @@
 //
 //  SEUploadController.m
-//  Stan
+//  SEBeamMeUpScotty
 //
 //  Created by bryn austin bellomy on 3.20.13.
 //  Copyright (c) 2013 bryn austin bellomy. All rights reserved.
 //
 
+#import <BrynKit/BrynKit.h>
+#import <BrynKit/GCDThreadsafe.h>
 #import <StateMachine-GCDThreadsafe/StateMachine.h>
 #import <libextobjc/EXTScope.h>
-#import <BrynKit/BrynKitLogging.h>
 #import <CocoaLumberjack/DDLog.h>
 
-#import "SEUpload.h"
+#import "SEBeamMeUpScotty.h"
 #import "SEUploadController.h"
 
 @interface SEUploadController ()
@@ -27,7 +28,7 @@
 
 @interface SEUploadController (StateMachine_Private)
 
-@property (nonatomic, strong, readwrite) NSString *state;
+//@property (nonatomic, strong, readwrite) NSString *state;
 
 - (void) initializeStateMachine;
 - (void) failWithError;
@@ -37,6 +38,7 @@
 
 
 @implementation SEUploadController
+@gcd_threadsafe
 
 static int logLevel = LOG_LEVEL_VERBOSE;
 + (int)  ddLogLevel               { return logLevel;  }

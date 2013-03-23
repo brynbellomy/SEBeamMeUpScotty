@@ -1,6 +1,6 @@
 //
 //  SEFacebookUploadController.m
-//  Stan
+//  SEBeamMeUpScotty
 //
 //  Created by bryn austin bellomy on 3.15.13.
 //  Copyright (c) 2013 bryn austin bellomy. All rights reserved.

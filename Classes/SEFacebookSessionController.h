@@ -1,6 +1,6 @@
 //
 //  SEFacebookSessionController.h
-//  Stan
+//  SEBeamMeUpScotty
 //
 //  Created by bryn austin bellomy on 3.16.13.
 //  Copyright (c) 2013 bryn austin bellomy. All rights reserved.
@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <Facebook-iOS-SDK/FacebookSDK/Facebook.h>
-#import "SEUpload.h"
+#import "SEBeamMeUpScotty.h"
 
 @class SEFacebookUploadController;
 

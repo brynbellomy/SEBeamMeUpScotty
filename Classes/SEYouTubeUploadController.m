@@ -12,10 +12,10 @@
 #import <libextobjc/EXTScope.h>
 #import <ReactiveCocoa/ReactiveCocoa.h>
 
-#import "GTLYouTubeConstants.h"
-#import "GTLYouTube.h"
-#import "GTLService.h"
-#import "GTMHTTPUploadFetcher.h"
+#import <iOS-GTLYouTube/GTLYouTubeConstants.h>
+#import <iOS-GTLYouTube/GTLYouTube.h>
+#import <iOS-GTLYouTube/GTLService.h>
+#import <iOS-GTLYouTube/GTMHTTPUploadFetcher.h>
 
 #import "SEYouTubeSessionController.h"
 #import "SEYouTubeUploadController.h"

@@ -1,6 +1,6 @@
 //
 //  SEFacebookSessionController.m
-//  Stan
+//  SEBeamMeUpScotty
 //
 //  Created by bryn austin bellomy on 3.16.13.
 //  Copyright (c) 2013 bryn austin bellomy. All rights reserved.
@@ -13,7 +13,7 @@
 
 #import "SEFacebookSessionController.h"
 #import "SEFacebookUploadController.h"
-#import "SEUpload.h"
+#import "SEBeamMeUpScotty.h"
 
 @interface SEFacebookSessionController ()
     @property (nonatomic, strong, readwrite) Facebook *facebook;

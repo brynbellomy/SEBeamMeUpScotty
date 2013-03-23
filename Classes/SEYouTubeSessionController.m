@@ -1,6 +1,6 @@
 //
 //  SEYouTubeSessionController.m
-//  Stan
+//  SEBeamMeUpScotty
 //
 //  Created by bryn austin bellomy on 3.18.13.
 //  Copyright (c) 2013 bryn austin bellomy. All rights reserved.
