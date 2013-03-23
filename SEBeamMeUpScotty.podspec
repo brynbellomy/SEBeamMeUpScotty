@@ -38,7 +38,7 @@ Pod::Spec.new do |s|
 
     #s.subspec 'YouTube' do |subspec|
     #subspec.source_files = 'Classes/SEYouTube*.{h,m}'
-    s.dependency 'iOS-GTLYouTube', :local => '~/projects/_obj-c/iOS-GTLYouTube'
+    s.dependency 'iOS-GTLYouTube'
     #end
 
 end
