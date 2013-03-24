@@ -6,7 +6,7 @@
 Pod::Spec.new do |s|
   s.platform     = :ios, '5.1'
   s.name         = 'SEBeamMeUpScotty'
-  s.version      = '0.0.2'
+  s.version      = '0.0.3'
   s.author       = { 'bryn austin bellomy' => 'bryn.bellomy@gmail.com' }
   s.summary      = 'Ridiculously simple iOS video uploader classes for YouTube, Facebook, etc.'
   s.homepage     = 'http://github.com/brynbellomy/SEBeamMeUpScotty'
