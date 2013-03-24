@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => 'https://github.com/brynbellomy/SEBeamMeUpScotty.git', :tag => "v#{s.version.to_s}" }
   s.requires_arc = true
 
-  s.source_files = 'Classes/{SEBeamMeUpScotty.h,SEUploadController.{h,m}}'
+  s.source_files = 'Classes/{SEBeamMeUpScotty.h,SEUploadController.{h,m},SEFacebook*.{h,m},SEYouTube*.{h,m}}'
 
   s.frameworks = [ 'MobileCoreServices' ]
 
