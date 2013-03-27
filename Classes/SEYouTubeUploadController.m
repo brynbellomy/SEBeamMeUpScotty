@@ -35,15 +35,33 @@
 
 @implementation SEYouTubeUploadController
 
+
+
 - (instancetype) initWithSessionController:(NSObject<SEUploadSessionController> *)sessionController
                                   videoURL:(NSURL *)videoURL
 {
     yssert_notNilAndIsClass(sessionController, SEYouTubeSessionController);
     self = [super initWithSessionController:sessionController videoURL:videoURL];
-    if (self) {
-
+    if (self)
+    {
     }
     return self;
+}
+
+- (void) dealloc
+{
+    lllog(Warn, @"-[%@ dealloc] is being called", [self class]);
+}
+
+
+- (BOOL) sendsProgressUpdates
+{
+    return YES;
+}
+
+- (NSString *) serviceName
+{
+    return @"YouTube";
 }
 
 
@@ -56,7 +74,9 @@
 
 - (void) doUploadVideo
 {
-    yssert_notNilAndIsClass(self.videoURL, NSURL);
+    [super doUploadVideo];
+
+    lllog(Info, @"self.videoURL = %@", self.videoURL);
 
     // Collect the metadata for the upload from the user interface.
 
@@ -86,8 +106,6 @@
     [self uploadVideoToYouTubeFromFileURL: self.videoURL
                               videoObject: video
                   resumeUploadLocationURL: nil];
-
-    [super doUploadVideo];
 }
 
 
@@ -129,6 +147,12 @@
                              videoObject: (GTLYouTubeVideo *)video
                  resumeUploadLocationURL: (NSURL *)locationURL
 {
+    if (self.sessionController.isSignedIn != YES) {
+        lllog(Error, @"Not logged in!");
+        return;
+    }
+
+    yssert(self.sessionController.isSignedIn == YES, @"Must be signed in!");
     yssert_notNilAndIsClass(self.sessionController.youTubeService, GTLServiceYouTube);
     yssert_notNilAndIsClass(videoFileURL, NSURL);
     yssert_notNilAndIsClass(video, GTLYouTubeVideo);
@@ -164,54 +188,55 @@
     //
     // fire off the request
     //
-    yssert_notNilAndIsClass(self.sessionController.youTubeService, GTLServiceYouTube);
-    self.uploadFileTicket = [self.sessionController.youTubeService executeQuery: query
-                                                              completionHandler:^(GTLServiceTicket *ticket, GTLYouTubeVideo *uploadedVideo, NSError *error) {
-                                                                  @strongify(self);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @strongify(self);
 
-                                                                  dispatch_async(dispatch_get_main_queue(), ^{
-//                                                                  [[RACScheduler mainThreadScheduler] schedule:^{
+        yssert_notNilAndIsClass(self.sessionController.youTubeService, GTLServiceYouTube);
+        self.uploadFileTicket = [self.sessionController.youTubeService executeQuery: query
+                                                                  completionHandler:^(GTLServiceTicket *ticket, GTLYouTubeVideo *uploadedVideo, NSError *error) {
+
                                                                       @strongify(self);
 
-                                                                      self.uploadFileTicket  = nil;
-                                                                      self.uploadLocationURL = nil;
+                                                                  [[RACScheduler mainThreadScheduler] schedule:^{
+                                                                          @strongify(self);
 
-                                                                      if (error)
-                                                                      {
-                                                                          lllog(Error, @"YouTube upload failed = { localizedDescription:'%@', localizedFailureReason: '%@' }", error.localizedDescription, error.localizedFailureReason);
-                                                                          [self failWithError: error];
-                                                                          return;
-                                                                      }
+                                                                          self.uploadFileTicket  = nil;
+                                                                          self.uploadLocationURL = nil;
 
-                                                                      [self complete];
-                                                                  });
-                                                              }];
+                                                                          if (error)
+                                                                          {
+                                                                              lllog(Error, @"YouTube upload failed = { localizedDescription:'%@', localizedFailureReason: '%@' }", error.localizedDescription, error.localizedFailureReason);
+                                                                              [self failWithError: error];
+                                                                              return;
+                                                                          }
 
-    yssert_notNilAndIsClass(self.uploadFileTicket, GTLServiceTicket);
+                                                                          [self complete];
+                                                                      }];
+                                                                  }];
 
-    self.uploadFileTicket.uploadProgressBlock = ^(GTLServiceTicket *ticket, unsigned long long numberOfBytesRead, unsigned long long dataLength) {
-        @strongify(self);
+        yssert_notNilAndIsClass(self.uploadFileTicket, GTLServiceTicket);
 
-        lllog(Info, @"progress (outer) = %@", @((Float32)((float)numberOfBytesRead / (float)dataLength)));
-        dispatch_async(dispatch_get_main_queue(), ^{
-//        [[RACScheduler mainThreadScheduler] schedule:^{
+        self.uploadFileTicket.uploadProgressBlock = ^(GTLServiceTicket *ticket, unsigned long long numberOfBytesRead, unsigned long long dataLength) {
             @strongify(self);
-            lllog(Info, @"progress (inner) = %@", @((Float32)((float)numberOfBytesRead / (float)dataLength)));
-            self.progress = (Float32)((float)numberOfBytesRead / (float)dataLength);
-        });
-    };
 
-    yssert(self.uploadFileTicket.uploadProgressBlock != nil, @"self.uploadFileTicket.uploadProgressBlock is nil.");
+            [[RACScheduler mainThreadScheduler] schedule:^{
+                @strongify(self);
+                self.progress = (Float32)((float)numberOfBytesRead / (float)dataLength);
+            }];
+        };
+
+        yssert_notNil(self.uploadFileTicket.uploadProgressBlock);
 
 
-    //
-    // to allow restarting after stopping, we need to track the upload location url
-    //
-    GTMHTTPUploadFetcher *uploadFetcher = (GTMHTTPUploadFetcher *)self.uploadFileTicket.objectFetcher;          yssert_notNilAndIsClass(uploadFetcher, GTMHTTPUploadFetcher);
-    uploadFetcher.locationChangeBlock = ^(NSURL *url) {
-        @strongify(self);
-        self.uploadLocationURL = url;
-    };
+        //
+        // to allow restarting after stopping, we need to track the upload location url
+        //
+        GTMHTTPUploadFetcher *uploadFetcher = (GTMHTTPUploadFetcher *)self.uploadFileTicket.objectFetcher;          yssert_notNilAndIsClass(uploadFetcher, GTMHTTPUploadFetcher);
+        uploadFetcher.locationChangeBlock = ^(NSURL *url) {
+            @strongify(self);
+            self.uploadLocationURL = url;
+        };
+    });
 }
 
 
