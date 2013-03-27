@@ -11,6 +11,8 @@
 #import <StateMachine-GCDThreadsafe/StateMachine.h>
 #import <libextobjc/EXTScope.h>
 #import <CocoaLumberjack/DDLog.h>
+#import <iOS-CrackRock/SECrackRock.h>
+#import <ReactiveCocoa/ReactiveCocoa.h>
 
 #import "SEBeamMeUpScotty.h"
 #import "SEUploadController.h"
@@ -19,20 +21,15 @@
 
 @property (nonatomic, strong, readwrite) NSObject<SEUploadSessionController> *sessionController;
 @property (nonatomic, strong, readwrite) NSError *error;
-@property (nonatomic, strong, readwrite) NSURL *videoURL;
+@property (nonatomic, copy,   readwrite) NSURL *videoURL;
 @property (nonatomic, assign, readwrite) Float32 progress;
 
 @end
 
 
-
 @interface SEUploadController (StateMachine_Private)
-
-//@property (nonatomic, strong, readwrite) NSString *state;
-
 - (void) initializeStateMachine;
 - (void) failWithError;
-
 @end
 
 
@@ -52,6 +49,7 @@ STATE_MACHINE(^(LSStateMachine *sm) {
     // states
     //
     [sm addState:SEUploadState_NotLoggedIn];
+    [sm addState:SEUploadState_LoggingIn];
     [sm addState:SEUploadState_ReadyToUpload];
     [sm addState:SEUploadState_InProgress];
     [sm addState:SEUploadState_Complete];
@@ -99,6 +97,15 @@ STATE_MACHINE(^(LSStateMachine *sm) {
         yssert_notNilAndIsClass(self.error, NSError);
         [self doFailWithError];
     }];
+
+    //
+    // debug logging
+    //
+    for (id event in sm.events) {
+        [sm before:[event name] do:^(SEUploadController *self) {
+            lllog(Info, @"[ SEUploadController (%@) state transition: %@ ]", NSStringFromClass([self class]), [event name]);
+        }];
+    }
 });
 
 
@@ -116,13 +123,13 @@ STATE_MACHINE(^(LSStateMachine *sm) {
 - (instancetype) initWithSessionController:(NSObject<SEUploadSessionController> *)sessionController
                                   videoURL:(NSURL *)videoURL
 {
+    yssert_notNilAndConformsToProtocol(sessionController, SEUploadSessionController);
     yssert_notNilAndIsClass(videoURL, NSURL);
-    yssert(sessionController != nil, @"sessionController is nil.");
-    yssert([sessionController conformsToProtocol:@protocol(SEUploadSessionController)], @"sessionController must conform to protocol SEUploadSessionController.");
 
     self = [super init];
     if (self)
     {
+        @gcd_threadsafe_init(SERIAL, "com.signalenvelope.SEBeamMeUpScotty.UploadController.queueCritical");
         [self initializeStateMachine];
 
         _progress          = 0.0f;
@@ -140,47 +147,59 @@ STATE_MACHINE(^(LSStateMachine *sm) {
 }
 
 
+- (void) dealloc
+{
+    lllog(Warn, @"-[%@ dealloc] is being called", [self class]);
+}
+
+
 
 #pragma mark- (fsm) transitions
 #pragma mark-
 
 - (void) doSignIn
 {
-    lllog(Info, @" ## ###### [ STATE CHANGE (sign in) ] = %@", self.state);
     @weakify(self);
 
-    [self.sessionController signInWithCompletion:^{
+//    [RACScheduler.scheduler schedule:^{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        yssert_onMainThread();
         @strongify(self);
-        [self finishSigningIn];
-    }];
+
+        [self.sessionController signInWithCompletion:^{
+            @strongify(self);
+
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+                @strongify(self);
+                yssert([self canFinishSigningIn], @"self cannot finishSigningIn");
+                [self finishSigningIn];
+            });
+        }];
+    });
 }
 
 
 
 - (void) doFinishSigningIn
 {
-    lllog(Info, @" ## ###### [ STATE CHANGE (finished signing in) ] = %@", self.state);
 }
 
 
 
 - (void) doUploadVideo
 {
-    lllog(Info, @" ## ###### [ STATE CHANGE (start upload) ] = %@", self.state);
 }
 
 
 
 - (void) doComplete
 {
-    lllog(Info, @" ## ###### [ STATE CHANGE (complete) ] = %@", self.state);
 }
 
 
 
 - (void) doFailWithError
 {
-    lllog(Info, @" ## ###### [ STATE CHANGE (error) ] = %@", self.state);
 }
 
 
