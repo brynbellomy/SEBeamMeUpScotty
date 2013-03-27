@@ -30,6 +30,9 @@ Key(SEUploadSessionControllerNotification_LoginDidFail);
 
 @class SEUploadController;
 
+
+
+
 @protocol SEUploadSessionController
 
 @required
@@ -50,8 +53,8 @@ Key(SEUploadSessionControllerNotification_LoginDidFail);
 
 @class SEUploadController;
 
+#define SEUpload_LOG_CONTEXT 3123
 #if !defined(lllog)
-#   define SEUpload_LOG_CONTEXT 3123
 #   define lllog(severity, __FORMAT__, ...)     metamacro_concat(SEUploadLog,severity)((__FORMAT__), ## __VA_ARGS__)
 #   define SEUploadLogError(__FORMAT__, ...)    SYNC_LOG_OBJC_MAYBE([SEUploadController ddLogLevel], LOG_FLAG_ERROR,   SEUpload_LOG_CONTEXT, (__FORMAT__), ## __VA_ARGS__)
 #   define SEUploadLogWarn(__FORMAT__, ...)     SYNC_LOG_OBJC_MAYBE([SEUploadController ddLogLevel], LOG_FLAG_WARN,    SEUpload_LOG_CONTEXT, (__FORMAT__), ## __VA_ARGS__)
