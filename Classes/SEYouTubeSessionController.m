@@ -16,6 +16,7 @@
 #import <libextobjc/EXTScope.h>
 #import <ReactiveCocoa/ReactiveCocoa.h>
 #import <BrynKit/BrynKit.h>
+#import <BrynKit/RACSubject+SERACHelpers.h>
 
 #import "SEYouTubeSessionController.h"
 #import "SEYouTubeUploadController.h"
@@ -28,6 +29,7 @@
 @property (nonatomic, assign, readwrite) BOOL                          isSignedIn;
 @property (nonatomic, strong, readwrite) NSError                      *error;
 
+@property (nonatomic, strong, readwrite) UINavigationController *navigationController;
 @property (nonatomic, strong, readwrite) NSString *keychainItemName;
 @property (nonatomic, strong, readwrite) NSString *clientID;
 @property (nonatomic, strong, readwrite) NSString *clientSecret;
@@ -49,6 +51,7 @@
 - (instancetype) initWithKeychainItemName:(NSString *)keychainItemName
                                  clientID:(NSString *)clientID
                              clientSecret:(NSString *)clientSecret
+                     navigationController:(UINavigationController *)navigationController
 {
     yssert_notNilAndIsClass(keychainItemName, NSString);
     yssert_notNilAndIsClass(clientID,         NSString);
@@ -57,11 +60,16 @@
     self = [super init];
     if (self)
     {
-        _keychainItemName = keychainItemName;
-        _clientID = clientID;
-        _clientSecret = clientSecret;
+        _isSignedIn              = NO;
+        _youTubeSignedInUsername = nil;
+        _navigationController    = navigationController;
+        _keychainItemName        = [keychainItemName copy];
+        _clientID                = [clientID copy];
+        _clientSecret            = [clientSecret copy];
 
         [self initializeReactiveKVO];
+
+        [self attemptYouTubeSignInFromSavedKeychainItem];
     }
     return self;
 }
@@ -72,10 +80,14 @@
     //
     // Returns the email address of the signed-in user or nil if not authenticated.
     //
-    RAC(self.youTubeSignedInUsername) = [[[RACAbleWithStart(self.youTubeAuthentication.canAuthorize)
-                                               distinctUntilChanged]
-                                               filter:^BOOL(id value) { return (value != nil); }]
+    RAC(self.youTubeSignedInUsername) = [[RACAbleWithStart(self.youTubeAuthentication.canAuthorize)
+                                               lllogAll]
                                                map:^id (NSNumber *canAuthorize) {
+                                                   if (canAuthorize == nil) {
+                                                       return RACTupleNil.tupleNil;
+                                                   }
+                                                   yssert_notNilAndIsClass(canAuthorize, NSNumber);
+
                                                    return (canAuthorize.boolValue == YES
                                                                ? self.youTubeAuthentication.userEmail
                                                                : RACTupleNil.tupleNil);
@@ -83,20 +95,19 @@
 
     RAC(self.isSignedIn) = [RACAbleWithStart(self.youTubeSignedInUsername)
                                 map:^id (NSString *youTubeSignedInUsername) {
-                                    return @( self.youTubeSignedInUsername != nil );
+                                    BOOL isSignedIn = (BOOL)[self.youTubeSignedInUsername isNotNilAndNotRACTupleNil];
+                                    return @( isSignedIn );
                                 }];
 
 
     RACBind(self.youTubeService.authorizer) = RACBind(self.youTubeAuthentication);
-
-    [RACAbleWithStart(self.isSignedIn)
-        subscribeNext:^(NSNumber *isSignedIn) {
-            if (isSignedIn.boolValue == NO) {
-                [self attemptYouTubeSignInFromSavedKeychainItem];
-            }
-        }];
 }
 
+
+- (void) dealloc
+{
+    lllog(Warn, @"-[%@ dealloc] is being called", [self class]);
+}
 
 
 - (SEYouTubeUploadController *) uploadControllerForVideoFileURL:(NSURL *)videoFileURL
@@ -138,7 +149,7 @@
  */
 - (void) signInWithCompletion:(dispatch_block_t)completion
 {
-    if (self.isSignedIn)
+    if (self.isSignedIn == YES)
     {
         if (completion != nil)
             completion();
@@ -158,7 +169,7 @@
     }
 
 //    UIViewController *viewController =
-    [self signInViewControllerWithCompletion:completion];
+    [self doSignInViewControllerWithCompletion:completion];
 //    yssert_notNilAndIsClass(viewController, UIViewController);
 
 //    return viewController;
@@ -173,7 +184,8 @@
 
 - (void) didSignInToYouTube
 {
-    self.isSignedIn = YES;
+    self.error = nil;
+//    self.isSignedIn = YES;
 }
 
 
@@ -186,7 +198,7 @@
 - (void) didNotSignInToYouTube:(NSError *)error
 {
     self.error      = error;
-    self.isSignedIn = NO;
+//    self.isSignedIn = NO;
     self.youTubeAuthentication = nil;
 }
 
@@ -207,6 +219,7 @@
     self.youTubeAuthentication = [GTMOAuth2ViewControllerTouch authForGoogleFromKeychainForName: self.keychainItemName
                                                                                        clientID: self.clientID
                                                                                    clientSecret: self.clientSecret];
+    yssert_notNilAndIsClass(self.youTubeAuthentication, GTMOAuth2Authentication);
 
     if (self.youTubeAuthentication.canAuthorize) {
         [self didSignInToYouTube];
@@ -222,13 +235,14 @@
 
 
 /**
- * showYouTubeSignInViewThenHandler:
+ * doYouTubeSignInViewThenHandler:
  *
  *
  */
 
-- (GTMOAuth2ViewControllerTouch *) signInViewControllerWithCompletion:(dispatch_block_t) completionHandler
+- (void) doSignInViewControllerWithCompletion:(dispatch_block_t) completionHandler
 {
+    yssert_notNilAndIsClass(self.navigationController, UINavigationController);
     yssert_notNilAndIsClass(self.keychainItemName, NSString);
     yssert_notNilAndIsClass(self.clientID, NSString);
     yssert_notNilAndIsClass(self.clientSecret, NSString);
@@ -254,9 +268,10 @@
                                                                                       [self didSignInToYouTube];
                                                                                   }
 
-                                                                                  dispatch_async(dispatch_get_main_queue(), ^{
+                                                                                  [RACScheduler.mainThreadScheduler schedule:^{
+//                                                                                  dispatch_async(dispatch_get_main_queue(), ^{
                                                                                       [youtubeVC.navigationController popViewControllerAnimated:YES];
-                                                                                  });
+                                                                                  }];
 
                                                                                   if (completionHandler != nil) {
                                                                                       [RACScheduler.mainThreadScheduler schedule:completionHandler];
@@ -265,10 +280,12 @@
 
     yssert_notNilAndIsClass(youtubeVC, GTMOAuth2ViewControllerTouch);
 
-    // @@TODO: haven't made sure this works yet
-    [[[UIApplication sharedApplication] delegate].window.rootViewController.navigationController pushViewController:youtubeVC animated:YES];
+    [RACScheduler.mainThreadScheduler schedule:^{
+        @strongify(self);
 
-    return youtubeVC;
+        // @@TODO: haven't made sure this works yet
+        [self.navigationController pushViewController:youtubeVC animated:YES];
+    }];
 }
 
 
@@ -284,7 +301,7 @@
     [GTMOAuth2ViewControllerTouch removeAuthFromKeychainForName: self.keychainItemName];
     self.youTubeService.authorizer = nil;
     self.youTubeAuthentication     = nil;
-    self.isSignedIn = NO;
+//    self.isSignedIn = NO;
 }
 
 

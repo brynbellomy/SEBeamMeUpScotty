@@ -17,8 +17,9 @@
 @property (nonatomic, strong, readonly) GTLServiceYouTube *youTubeService;
 @property (nonatomic, strong, readonly) NSString *youTubeSignedInUsername;
 @property (nonatomic, assign, readonly) BOOL isSignedIn;
-@property (nonatomic, strong, readonly)  NSError *error;
+@property (nonatomic, strong, readonly) NSError *error;
 
+@property (nonatomic, strong, readonly) UINavigationController *navigationController;
 @property (nonatomic, strong, readonly) NSString *keychainItemName;
 @property (nonatomic, strong, readonly) NSString *clientID;
 @property (nonatomic, strong, readonly) NSString *clientSecret;
@@ -28,7 +29,7 @@
 // lifecycle
 //
 - (instancetype) init __attribute__((deprecated));
-- (instancetype) initWithKeychainItemName:(NSString *)keychainItemName clientID:(NSString *)clientID clientSecret:(NSString *)clientSecret;
+- (instancetype) initWithKeychainItemName:(NSString *)keychainItemName clientID:(NSString *)clientID clientSecret:(NSString *)clientSecret navigationController:(UINavigationController *)navigationController;
 
 //
 // sign in/out
@@ -36,7 +37,7 @@
 - (void) signInWithCompletion:(dispatch_block_t)completion;
 - (void) signOut;
 - (BOOL) attemptYouTubeSignInFromSavedKeychainItem;
-- (GTMOAuth2ViewControllerTouch *) signInViewControllerWithCompletion:(dispatch_block_t) completionHandler;
+- (void) doSignInViewControllerWithCompletion:(dispatch_block_t) completionHandler;
 
 //
 // upload controller
