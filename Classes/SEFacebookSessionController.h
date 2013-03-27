@@ -10,6 +10,8 @@
 #import <Facebook-iOS-SDK/FacebookSDK/Facebook.h>
 #import "SEBeamMeUpScotty.h"
 
+typedef void(^FBRequestObjectBlock)(FBRequest *request);
+
 @class SEFacebookUploadController;
 
 @interface SEFacebookSessionController : NSObject <SEUploadSessionController, FBSessionDelegate>
@@ -29,6 +31,7 @@
 - (void) signOut;
 - (BOOL) handleOpenURL:(NSURL *)url;
 - (SEFacebookUploadController *) uploadControllerForVideoFileURL:(NSURL *)videoFileURL;
+- (void) videoRequestWithParams:(NSMutableDictionary *)params delegate:(id)delegate requestObjectReady:(FBRequestObjectBlock)requestObjectReady;
 
 
 @end
